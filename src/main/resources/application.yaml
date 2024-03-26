@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: ExpensesBot
+
+  datasource:
+    url: jdbc:postgresql://${BASEPROJECT_DATABASE_HOST}:${EXPENSES_BOT_DB_PORT}/${EXPENSES_BOT_DB_NAME}
+    username: ${EXPENSES_BOT_DB_USERNAME}
+    password: ${EXPENSES_BOT_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate:
+        format_sql: true
+    show-sql: true
+
+telegram:
+  botName: ExpensesBot
+  botToken: ${EXPENSES_BOT_TOKEN}
+  botOwnerId: ${EXPENSES_BOT_OWNER_ID}
+
