@@ -17,10 +17,7 @@ import ru.bezborodov.expensesbot.repository.ExpenseRepository;
 import ru.bezborodov.expensesbot.repository.UserRepository;
 
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 @Scope(value = "singleton")
@@ -38,6 +35,7 @@ public class ExpensesBot extends TelegramLongPollingBot {
     private final BotConfig config;
     private final Map<String, ExpenseBotCommand> commandMap;
     private final Map<String, BotMarkup> markupMap;
+    private final Set<String> categoriesSet;
     private static final Logger log = LoggerFactory.getLogger(ExpensesBot.class);
     private String lastCallbackData;
 
@@ -50,6 +48,9 @@ public class ExpensesBot extends TelegramLongPollingBot {
         markups.forEach(m -> markupMap.put(m.getMarkupIdentifier(), m));
         HELP_MESSAGE = getHelpMessage(commands);
         BotUtils.setMyCommands(this, commands);
+
+        categoriesSet = new HashSet<>();
+        Arrays.stream(ExpenseCategory.values()).forEach(c -> categoriesSet.add(c.name()));
     }
 
     @Override
@@ -62,7 +63,7 @@ public class ExpensesBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Message message = update.getMessage();
             Message replyMessage = message.getReplyToMessage();
-            String reply = replyMessage == null ? "" : "as a reply to message" + replyMessage.getMessageId();
+            String reply = replyMessage == null ? "" : " as a reply to message " + replyMessage.getMessageId();
             log.info("Received message \"" + message.getText() + "\"" + reply + " from " + message.getChatId());
             BotUtils.deleteMessage(this, message.getChatId(), message.getMessageId());
             if (message.isCommand()) {
@@ -77,6 +78,55 @@ public class ExpensesBot extends TelegramLongPollingBot {
 
     public static String getHelpMessage() {
         return HELP_MESSAGE;
+    }
+
+    private void processUserTextMessage(String msgText, long chatId) {
+        if (EXPENSE != null && CURRENT_BOT_MESSAGE != null) {
+            String textToSend;
+            try {
+                EXPENSE.setPrice(Double.parseDouble(msgText));
+            } catch (NumberFormatException e) {
+                log.error(e.getMessage());
+                textToSend = "Category: " + EXPENSE.getCategory()
+                        + "\nIncorrect input. Please, use numbers";
+                BotUtils.updateMessage(this, chatId, CURRENT_BOT_MESSAGE.getMessageId(), textToSend, null);
+                return;
+            }
+            if (categoriesSet.contains(lastCallbackData)) { // if previous clicked button was category in ADD process
+                addExpense(chatId, CURRENT_BOT_MESSAGE.getMessageId());
+            }
+            if (lastCallbackData.equals(BotUtils.PRICE)) { // if previous clicked button was price in UPDATE process
+                addExpense(chatId, CURRENT_BOT_MESSAGE.getMessageId());
+                expenseRepository.save(EXPENSE);
+                textToSend = EXPENSE.getPrice() + " on " + EXPENSE.getCategory().name();
+                BotUtils.updateMessage(this, chatId, CURRENT_BOT_MESSAGE.getMessageId(), textToSend, null);
+            }
+            CURRENT_BOT_MESSAGE = null;
+        }
+    }
+
+    private void addExpense(long chatId, int messageId) {
+        if (userRepository.findById(chatId).isPresent()) {
+            EXPENSE.setUser(userRepository.findById(chatId).get());
+            EXPENSE.setDate(LocalDate.now());
+            EXPENSE.setMessageId(messageId);
+            expenseRepository.save(EXPENSE);
+            BotUtils.updateMessage(this, chatId, messageId, EXPENSE.getPrice() + " "
+                    + " on " + EXPENSE.getCategory().name(), null);
+            log.info("Added new " + EXPENSE);
+            EXPENSE = null;
+        }
+    }
+
+    private void processCommand(Update update) {
+        Message message = update.getMessage();
+        String text = message.getText();
+        if (text.startsWith(ExpenseBotCommand.COMMAND_INIT_CHARACTER)) {
+            String command = text.substring(1);
+            if (this.commandMap.containsKey(command)) {
+                this.commandMap.get(command).processMessage(this, update);
+            }
+        }
     }
 
     private void processCallback(Update update) {
@@ -95,60 +145,16 @@ public class ExpensesBot extends TelegramLongPollingBot {
         }
     }
 
-    private void processUserTextMessage(String messageText, long chatId) {
-        if (EXPENSE != null && CURRENT_BOT_MESSAGE != null) {
-            String textToSend;
-            try {
-                EXPENSE.setPrice(Double.parseDouble(messageText));
-            } catch (NumberFormatException e) {
-                log.error(e.getMessage());
-                textToSend = "Category: " + EXPENSE.getCategory()
-                        + "\nIncorrect input. Please, use numbers";
-                BotUtils.updateMessage(this, chatId, CURRENT_BOT_MESSAGE.getMessageId(), textToSend, null);
-                return;
-            }
-            if (lastCallbackData.equals(BotUtils.PRICE)) {  // if previous clicked button was price in UPDATE process
-                expenseRepository.save(EXPENSE);
-                textToSend = EXPENSE.getPrice() + " " + " on " + EXPENSE.getCategory().name();
-                BotUtils.updateMessage(this, chatId, CURRENT_BOT_MESSAGE.getMessageId(), textToSend, null);
-            }
-            CURRENT_BOT_MESSAGE = null;
-        }
-    }
-
-    private void processCommand(Update update) {
-        Message message = update.getMessage();
-        String text = message.getText();
-        if (text.startsWith(ExpenseBotCommand.COMMAND_INIT_CHARACTER)) {
-            String command = text.substring(1);
-            if (this.commandMap.containsKey(command)) {
-                this.commandMap.get(command).processMessage(this, update);
-            }
-        }
-    }
-
-    private void addExpense(long chatId, int messageId) {
-        if (userRepository.findById(chatId).isPresent()) {
-            EXPENSE.setUser(userRepository.findById(chatId).get());
-            EXPENSE.setDate(LocalDate.now());
-            EXPENSE.setMessageId(messageId);
-            expenseRepository.save(EXPENSE);
-            BotUtils.updateMessage(this, chatId, messageId,
-                    EXPENSE.getPrice() + " on " + EXPENSE.getCategory().name(), null);
-            log.info("Added new " + EXPENSE);
-            EXPENSE = null;
-        }
-    }
-
     private String getHelpMessage(List<ExpenseBotCommand> commands) {
-        String header = "I can help you to track you expenses\uD83D\uDE09\n\nYou can control me by sending this commands:\n";
-        StringBuilder stringBuilder = new StringBuilder(header);
+        String header = "I can help you to track your expenses\uD83D\uDE09\n\nYou can control me by sending these commands:\n";
+        StringBuilder builder = new StringBuilder(header);
         commands.stream().filter(ExpenseBotCommand::addInHelpMessage).forEach(command -> {
-            stringBuilder.append(command);
-            stringBuilder.append("\n");
+            builder.append(command);
+            builder.append("\n");
         });
-        stringBuilder.append("\n<b>Expense categories:</b>\n");
-        Arrays.stream(ExpenseCategory.values()).forEach(category -> stringBuilder.append(category).append("\n"));
-        return stringBuilder.toString();
+        builder.append("\n<b>Expense categories:</b>\n");
+        Arrays.stream(ExpenseCategory.values()).forEach(category -> builder.append(category).append("\n"));
+        return builder.toString();
     }
+
 }

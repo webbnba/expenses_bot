@@ -1,20 +1,22 @@
 package ru.bezborodov.expensesbot.model;
 
 import com.vdurmont.emoji.EmojiParser;
-import lombok.Getter;
 
-@Getter
 public enum ExpenseCategory {
-    FOOD(":green_salad:"),
-    HOUSEHOLD_CHEMISTRY(":lotion_bottle: "),
+    FOOD(":cut_of_meat::green_apple::leafy_green:"),
+    HOUSEHOLD_CHEMISTRY(":lotion_bottle::soap::roll_of_paper: "),
     HEALTH(":hospital::woman_health_worker:"),
-    CAR(":automobile::fuel_pump:"),
-    SERVICES(":nail_care::hammer_and_wrench:"),
-    UTILITIES(":person_taking_bath:");
+    CAR(":oncoming_automobile::gear::wrench:"),
+    SERVICES(":hammer_and_wrench::briefcase::partying_face:"),
+    UTILITIES(":bulb::potable_water::thermometer:");
 
     private final String emoji;
     ExpenseCategory(String emoji) {
         this.emoji = emoji;
+    }
+
+    public String getEmoji() {
+        return EmojiParser.parseToUnicode(emoji);
     }
 
     @Override
