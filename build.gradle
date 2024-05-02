@@ -2,7 +2,10 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
     id 'io.spring.dependency-management' version '1.1.4'
+    id 'com.google.cloud.tools.jib' version '3.4.2'
 }
+
+apply from: 'jib.gradle'
 
 group = 'ru.bezborodov'
 version = '0.0.1-SNAPSHOT'
@@ -36,8 +39,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:mysql'
-    testImplementation 'ch.qos.logback:logback-classic:1.5.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.7'
+    testImplementation 'ch.qos.logback:logback-classic:1.4.11'
+    testImplementation 'org.powermock:powermock-module-junit4:2.0.9'
+    testImplementation 'org.powermock:powermock-api-mockito2:2.0.9'
 
 }
 

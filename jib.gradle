@@ -1,0 +1,12 @@
+jib {
+    from {
+        image = 'bellsoft/liberica-openjdk-alpine-musl:17.0.1-12'
+    }
+    to {
+        image = 'docker.io/webbnba/expenses_bot'
+        tags = ['v11', 'latest']
+    }
+    container {
+        creationTime = 'USE_CURRENT_TIMESTAMP'
+    }
+}

@@ -37,6 +37,6 @@ public class StartCommand extends ExpenseBotCommand {
 
     @Override
     public boolean addInHelpMessage() {
-        return false;
+        return true;
     }
 }

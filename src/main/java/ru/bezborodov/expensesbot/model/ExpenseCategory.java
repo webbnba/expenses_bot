@@ -8,8 +8,10 @@ public enum ExpenseCategory {
     HEALTH(":hospital::woman_health_worker:"),
     CAR(":oncoming_automobile::gear::wrench:"),
     SERVICES(":hammer_and_wrench::briefcase::partying_face:"),
-    UTILITIES(":bulb::potable_water::thermometer:");
-
+    UTILITIES(":bulb::potable_water::thermometer:"),
+    CLOTHES(":dress::jeans::high_heel:"),
+    GREAT_BUY(":moneybag::dollar:"),
+    BAD_HABITS(":nauseated_face::champagne:");
     private final String emoji;
     ExpenseCategory(String emoji) {
         this.emoji = emoji;

@@ -1,0 +1,20 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:13.3
+    restart: always
+    environment:
+      - POSTGRES_USER=${EXPENSES_BOT_DB_USERNAME}
+      - POSTGRES_PASSWORD=${EXPENSES_BOT_DB_PASSWORD}
+      - POSTGRES_DB=${EXPENSES_BOT_DB_NAME}
+    ports:
+      - '${EXPENSES_BOT_DB_PORT}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  backend:
+    image: webbnba/expenses_bot:latest
+    restart: always
+    environment:
+      - DB_HOST=postgres
+
+
